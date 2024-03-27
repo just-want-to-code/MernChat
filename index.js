@@ -1,6 +1,5 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const cors = require('cors');
 const ws = require('ws');
@@ -27,7 +26,6 @@ const corsOptions = {
 };
 
 app.use(express.json());
-app.use(cookieParser());
 app.use(cors(corsOptions));
 app.use('/uploads', express.static(__dirname + '/uploads'));
 app.use('/auth', userRouter);
@@ -39,8 +37,10 @@ const server = app.listen(process.env.PORT || 5000, () => {
 });
 
 const wss = new ws.WebSocketServer({ server });
-wss.on('connection', (connection, req) => {
+
+wss.on('connection', (connection) => {
   const notifyAboutOnlinePeople = () => {
+    //console.log([...wss.clients].map((el) => el.id));
     [...wss.clients].forEach((client) => {
       client.send(
         JSON.stringify({
@@ -52,7 +52,7 @@ wss.on('connection', (connection, req) => {
       );
     });
   };
-
+  //console.log(console.log([...wss.clients].map((el) => el.username)));
   connection.isAlive = true;
 
   connection.timer = setInterval(() => {
@@ -70,28 +70,13 @@ wss.on('connection', (connection, req) => {
     clearTimeout(connection.deathTimer);
   });
 
-  //read usename and id from the cookie for this connection
-  const cookies = req.headers.cookie;
-  if (cookies) {
-    const tokenCookieString = cookies
-      .split(';')
-      .find((str) => str.startsWith('token='));
-    if (tokenCookieString) {
-      const token = tokenCookieString.split('=')[1];
-      if (token) {
-        try {
-          const userData = jwt.verify(token, jwtSecret);
-          const { userId, username } = userData;
-          connection.userId = userId;
-          connection.username = username;
-        } catch (err) {
-          console.log(err);
-        }
-      }
-    }
-  }
   connection.on('message', async (message) => {
     const parsedMessage = JSON.parse(message.toString());
+    if (parsedMessage.id) {
+      connection.userId = parsedMessage.id;
+      connection.username = parsedMessage.logUsername;
+      notifyAboutOnlinePeople();
+    }
     const { recipient, text, file } = parsedMessage;
     let filename = null;
     if (file) {
@@ -113,7 +98,6 @@ wss.on('connection', (connection, req) => {
           file: file ? filename : null,
           seen: false,
         });
-        //console.log(createdMessage);
         [...wss.clients]
           .filter(
             (c) => c.userId === recipient || c.userId === connection.userId
@@ -135,7 +119,4 @@ wss.on('connection', (connection, req) => {
       }
     }
   });
-
-  //notify everyone about online people (when someone connects)
-  notifyAboutOnlinePeople();
 });

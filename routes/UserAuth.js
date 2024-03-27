@@ -17,12 +17,10 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
     });
     const token = jwt.sign({ userId: createdUser._id, username }, jwtSecret);
-    res
-      .cookie('token', token, { sameSite: 'none', secure: true })
-      .status(201)
-      .json({
-        id: createdUser._id,
-      });
+    res.status(201).json({
+      token,
+      id: createdUser._id,
+    });
   } catch (err) {
     console.log(err);
     res.status(500).json('error');
@@ -37,7 +35,8 @@ router.post('/login', async (req, res) => {
       const passOk = bcrypt.compareSync(password, response.password);
       if (passOk) {
         const token = jwt.sign({ userId: response._id, username }, jwtSecret);
-        res.cookie('token', token, { sameSite: 'none', secure: true }).json({
+        res.json({
+          token,
           id: response._id,
         });
       }
@@ -48,7 +47,4 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/logout', (req, res) => {
-  res.cookie('token', '', { sameSite: 'none', secure: true }).json('ok');
-});
 module.exports = router;
