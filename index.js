@@ -23,6 +23,7 @@ const messageRouter = require('./routes/MessageRouter.js');
 const corsOptions = {
   origin: process.env.CLIENT_URL,
   credentials: true, //access-control-allow-credentials:true
+  optionSuccessStatus: 200,
 };
 
 app.use(express.json());
