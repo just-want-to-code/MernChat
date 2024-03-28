@@ -39,8 +39,8 @@ router.post('/login', async (req, res) => {
           token,
           id: response._id,
         });
-      }
-    }
+      } else res.json('wrong');
+    } else res.json('wrong');
   } catch (err) {
     console.log(err);
     res.json('error');
